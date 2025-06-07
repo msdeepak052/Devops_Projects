@@ -1255,3 +1255,239 @@ sudo chown ubuntu:ubuntu /home/ubuntu/.kube/config
 sudo -u ubuntu kubectl get nodes
 
 ```
+
+#### CI - Jenkinsfile
+
+```Jenkisfile
+pipeline {
+    agent any
+    
+    tools{
+        maven "maven-3.9.9"
+        jdk "java-17" 
+    }
+    
+     environment {
+        // SonarQube configuration
+        SONAR_SCANNER_HOME = "${tool 'sonar-scanner'}"
+        PATH = "${env.SONAR_SCANNER_HOME}/bin:${env.PATH}"
+      
+        // PATH = "${env.JAVA_HOME}/bin:${env.MAVEN_HOME}/bin"
+        
+        // Application specific
+        
+        APP_NAME = "tours-travels-webapp"
+        VERSION = "1.0.${BUILD_NUMBER}"
+        
+       // Nexus Configuration (set these in Jenkins credentials)
+       
+        NEXUS_URL = "43.204.207.182:8081"
+        NEXUS_REPOSITORY = "tours-travels-webapp"  // or "maven-snapshots"
+        NEXUS_CREDENTIALS_ID = "nexus-credentials"  // Jenkins credentials ID for Nexus auth
+        
+        
+        // Docker configuration
+
+        ECR_REPO = "app/tour-travels-webapp"
+        AWS_REGION = "ap-south-1"
+
+        //Trivy configuration
+
+        TRIVY_CACHE_DIR = '.trivycache'
+        
+        
+    }
+
+    stages {
+        // Get the artifcats from the Github
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/msdeepak052/tours-and-travels-webpage.git'
+            }
+        }
+        
+        //OWASP Dependency Check
+        
+        stage('OWASP Check') {
+            steps {
+                dependencyCheck additionalArguments: '--format HTML', odcInstallation: 'Owasp-Check'
+            }
+        }
+
+        
+        // Build
+        stage('Build with Maven') {
+            steps {
+                // Update version in pom.xml to 1.0.${BUILD_NUMBER}
+                sh "mvn versions:set -DnewVersion=${VERSION}"
+        
+                // Build the project with new version
+                sh "mvn clean package"
+            }
+    }
+
+        
+        // SonarQube Block
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=${APP_NAME} \
+                        -Dsonar.projectName=${APP_NAME} \
+                        -Dsonar.projectVersion=${VERSION} \
+                        -Dsonar.sources=src \
+                        -Dsonar.java.binaries=target/classes
+                    """
+                }
+            }
+        }
+        
+        // Nexus Artifactory Block
+        
+        stage('Upload to Nexus') {
+            steps {
+                nexusArtifactUploader(
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    nexusUrl: "${env.NEXUS_URL}",
+                    groupId: 'com.tours.app',
+                    version: "${env.VERSION}",
+                    repository: "${env.NEXUS_REPOSITORY}",
+                    credentialsId: "${env.NEXUS_CREDENTIALS_ID}",
+                    artifacts: [
+                        [
+                            artifactId: "${env.APP_NAME}",
+                            type: 'jar',
+                            file: "target/${env.APP_NAME}-${env.VERSION}.jar",
+                            classifier: ''
+                        ]
+                    ]
+                )
+            }
+        }
+        
+        // Build Docker Image
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def buildArgs = [
+                        "APP_NAME=${env.APP_NAME}-${env.VERSION}.jar"
+                        ].join(' ')
+                    // Build the Docker image with the specified build arguments
+                    def ecrUrl = sh(
+                            script: "aws ecr describe-repositories --repository-names ${ECR_REPO} --region ${AWS_REGION} --query 'repositories[0].repositoryUri' --output text",
+                            returnStdout: true
+                        ).trim()
+
+                    env.IMAGE_URI = "${ecrUrl}:${env.VERSION}"
+                    docker.build("${env.IMAGE_URI}", "--build-arg ${buildArgs} .")
+                }
+            }
+        }
+        
+        // Trivy Check
+
+        stage('Trivy Scan') {
+            steps {
+                script {
+                    
+                    // Download HTML template
+                    sh 'mkdir -p ${TRIVY_CACHE_DIR}'
+                    sh 'wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -O html.tpl'
+
+                    // Run Trivy scan
+
+                    sh """
+                        trivy image --cache-dir ${TRIVY_CACHE_DIR} \
+                        --severity HIGH,CRITICAL \
+                        --format table \
+                        --output trivy-report.txt \
+                        ${env.IMAGE_URI}
+                    """
+
+                    // Archive the Trivy report
+
+                    // Optional: Save report as artifact
+                    sh """
+                        trivy image --cache-dir ${TRIVY_CACHE_DIR} \
+                        --format template \
+                        --template "@html.tpl" \
+                        -o trivy-report.html \
+                        ${env.IMAGE_URI}
+                    """
+                    // ✅ This must be a Groovy step, not inside sh
+                        archiveArtifacts artifacts: 'trivy-report.html'
+                }
+            }
+        }
+
+        // Push Docker Image to AWS ECR 
+        
+        stage('Push to ECR') {
+            steps {
+                script {
+                    // Authenticate Docker with ECR
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${env.IMAGE_URI.split(':')[0]}
+                    """
+
+                    def dockerImage = docker.image("${env.IMAGE_URI}")
+                    dockerImage.push()
+                    // dockerImage.push('latest')
+                }
+            }
+        }
+
+    }
+        post {
+            always {
+                echo "Always block executed. Cleaning workspace..."
+                cleanWs()
+            }
+            success {
+                // echo "✅ CI pipeline succeeded. Triggering CD pipeline..."
+
+                // build job: 'cd-pipeline',
+                //     wait: false,
+                //     parameters: [
+                //         string(name: 'IMAGE_TAG', value: "${IMAGE_TAG}")
+                //     ]
+                echo "CI pipeline succeeded"
+
+            }
+            failure {
+                echo "CI pipeline failed. CD will NOT be triggered."
+            }
+    }
+}
+
+
+```
+
+#### Dockerfile
+
+```Dockerfile
+# Use a lightweight JDK 17 image for runtime
+FROM eclipse-temurin:17.0.15_6-jdk-jammy
+
+# Accept build-time variables (from --build-arg)
+ARG APP_NAME
+
+# Convert ARG to ENV (so they're available at runtime)
+ENV APP_NAME=$APP_NAME
+
+# Set working directory
+WORKDIR /opt
+
+# Copy JAR with dynamic name (assuming standard Maven naming: ${APP_NAME}-*.jar)
+COPY target/${APP_NAME} ${APP_NAME}
+
+# Expose default Spring Boot port (change if needed)
+EXPOSE 8080
+
+# Run the JAR (use ENV variable in ENTRYPOINT)
+ENTRYPOINT ["java", "-jar", "${APP_NAME}.jar"]
+```
