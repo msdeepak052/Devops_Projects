@@ -1,481 +1,259 @@
-# Devops_Projects
-
-### **1. End-to-End CI/CD Pipeline with Java Microservices**
-**Objective:**  
-Build a CI/CD pipeline for a Java-based microservice using Maven, SonarQube, Nexus, Jenkins, Docker, Kubernetes (EKS), and Terraform.  
-
-**Steps:**  
-- **Infrastructure Setup:**  
-  - Use **Terraform** to provision AWS EKS, EC2 (for Jenkins/Nexus), and VPC.  
-  - Deploy **Nexus** (for artifact storage) and **SonarQube** (for code quality) on EC2.  
-- **CI Pipeline (Jenkins):**  
-  - Checkout code → **Maven build** → **SonarQube scan** → Push JAR to **Nexus**.  
-  - Build **Docker image** and push to **ECR (AWS Container Registry)**.  
-- **CD Pipeline (Jenkins + Kubernetes):**  
-  - Deploy Docker image to **EKS** using **kubectl/Helm**.  
-  - Use **Ansible** for configuration management (if needed).  
-
----
-
-### **2. Infrastructure as Code (IaC) with Terraform & Ansible**  
-**Objective:**  
-Automate AWS infrastructure provisioning and configuration using Terraform and Ansible.  
-
-**Steps:**  
-- **Terraform:**  
-  - Provision **EKS cluster, VPC, IAM roles, EC2 (Jenkins/Nexus/SonarQube)**.  
-- **Ansible:**  
-  - Configure Jenkins, Nexus, SonarQube on EC2.  
-  - Install Docker, kubectl, Maven, and other tools.  
-
----
-
-### **3. Kubernetes Blue-Green Deployment on EKS**  
-**Objective:**  
-Implement **Blue-Green deployment** for a Spring Boot app on **EKS** using Jenkins.  
-
-**Steps:**  
-- Use **Terraform** to set up EKS.  
-- Jenkins pipeline:  
-  - Build → Test → Deploy **v1 (Blue)** → Test → Switch traffic to **v2 (Green)**.  
-- Use **kubectl/Helm** for deployment.  
-
----
-
-### **4. Automated Security Scanning in CI/CD**  
-**Objective:**  
-Integrate **SonarQube + Trivy (for Docker) + OWASP Dependency-Check** in Jenkins.  
-
-**Steps:**  
-- Jenkins pipeline:  
-  - **Maven build** → **SonarQube scan** → **Dependency-Check** → **Trivy scan (Docker image)** → Deploy to EKS.  
-
----
-
-### **5. Self-Healing Kubernetes Cluster on AWS**  
-**Objective:**  
-Deploy a **self-healing** app on EKS using Jenkins, Prometheus, and Terraform.  
-
-**Steps:**  
-- **Terraform** provisions EKS + Auto Scaling.  
-- Jenkins deploys a **Flask/Python app** with **liveness/readiness probes**.  
-- Use **Prometheus + Grafana** for monitoring.  
-
----
-
-### **6. Multi-Branch Pipeline for GitOps**  
-**Objective:**  
-Implement **GitOps** using Jenkins multi-branch pipelines and Kubernetes.  
-
-**Steps:**  
-- Jenkins detects **Git branches** → Builds & deploys to **different EKS namespaces** (dev/stage/prod).  
-- Use **Helm charts** for Kubernetes deployments.  
-
----
-
-### **7. Serverless CI/CD with Jenkins on EKS (Jenkins in Kubernetes)**  
-**Objective:**  
-Run **Jenkins inside EKS** (instead of EC2) for a cloud-native CI/CD.  
-
-**Steps:**  
-- **Terraform** provisions EKS.  
-- Deploy **Jenkins in Kubernetes** using Helm.  
-- Pipeline: Build → Scan → Deploy to EKS.  
-
----
-
-### **8. Immutable Infrastructure with Packer + Ansible + Terraform**  
-**Objective:**  
-Build **immutable infrastructure** using Packer (for AMI), Ansible, and Terraform.  
-
-**Steps:**  
-- **Packer + Ansible** → Create a custom AMI with Jenkins/Docker.  
-- **Terraform** → Deploy infrastructure using the AMI.  
-
----
-
-### **9. Canary Deployments on EKS using Istio**  
-**Objective:**  
-Implement **Canary deployments** on EKS using **Istio (Service Mesh)**.  
-
-**Steps:**  
-- **Terraform** provisions EKS.  
-- Jenkins deploys **v1 (90% traffic)** → **v2 (10% traffic)** → Gradually shift traffic.  
-
----
-
-### **10. Disaster Recovery Setup for Kubernetes**  
-**Objective:**  
-Automate **backup & recovery** of Kubernetes resources.  
-
-**Steps:**  
-- Use **Velero** to backup EKS cluster.  
-- **Jenkins pipeline** triggers backups periodically.  
-- **Terraform** recreates EKS if needed.  
-
----
-
-### **Common Tools Used Across Projects:**  
-| **Tool**         | **Purpose**                          |
-|------------------|-------------------------------------|
-| **Linux**        | Base OS for Jenkins/Nexus/SonarQube |
-| **Maven**        | Java project build tool             |
-| **SonarQube**    | Static code analysis                |
-| **Nexus**        | Artifact repository                |
-| **AWS**          | Cloud provider (EKS, EC2, ECR, etc.) |
-| **Jenkins**      | CI/CD automation                   |
-| **Kubernetes (EKS)** | Container orchestration          |
-| **Terraform**    | Infrastructure as Code (IaC)       |
-| **Ansible**      | Configuration management           |
-| **Docker**       | Containerization                   |
-
----
-
-Rahul Jaiswal
-	
-10:59 AM (3 minutes ago)
-	
-to me
-Here are **10 real-time project ideas** that involve **Linux, Maven, SonarQube, Nexus, AWS, Jenkins, Kubernetes (EKS), Terraform, Ansible, and Docker**. These projects simulate real-world DevOps and CI/CD workflows:
-
----
-
-### **1. End-to-End CI/CD Pipeline with Java Microservices**
-**Objective:**  
-Build a CI/CD pipeline for a Java-based microservice using Maven, SonarQube, Nexus, Jenkins, Docker, Kubernetes (EKS), and Terraform.  
-
-**Steps:**  
-- **Infrastructure Setup:**  
-  - Use **Terraform** to provision AWS EKS, EC2 (for Jenkins/Nexus), and VPC.  
-  - Deploy **Nexus** (for artifact storage) and **SonarQube** (for code quality) on EC2.  
-- **CI Pipeline (Jenkins):**  
-  - Checkout code → **Maven build** → **SonarQube scan** → Push JAR to **Nexus**.  
-  - Build **Docker image** and push to **ECR (AWS Container Registry)**.  
-- **CD Pipeline (Jenkins + Kubernetes):**  
-  - Deploy Docker image to **EKS** using **kubectl/Helm**.  
-  - Use **Ansible** for configuration management (if needed).  
-
----
-
-### **2. Infrastructure as Code (IaC) with Terraform & Ansible**  
-**Objective:**  
-Automate AWS infrastructure provisioning and configuration using Terraform and Ansible.  
-
-**Steps:**  
-- **Terraform:**  
-  - Provision **EKS cluster, VPC, IAM roles, EC2 (Jenkins/Nexus/SonarQube)**.  
-- **Ansible:**  
-  - Configure Jenkins, Nexus, SonarQube on EC2.  
-  - Install Docker, kubectl, Maven, and other tools.  
-
----
-
-### **3. Kubernetes Blue-Green Deployment on EKS**  
-**Objective:**  
-Implement **Blue-Green deployment** for a Spring Boot app on **EKS** using Jenkins.  
-
-**Steps:**  
-- Use **Terraform** to set up EKS.  
-- Jenkins pipeline:  
-  - Build → Test → Deploy **v1 (Blue)** → Test → Switch traffic to **v2 (Green)**.  
-- Use **kubectl/Helm** for deployment.  
-
----
-
-### **4. Automated Security Scanning in CI/CD**  
-**Objective:**  
-Integrate **SonarQube + Trivy (for Docker) + OWASP Dependency-Check** in Jenkins.  
-
-**Steps:**  
-- Jenkins pipeline:  
-  - **Maven build** → **SonarQube scan** → **Dependency-Check** → **Trivy scan (Docker image)** → Deploy to EKS.  
-
----
-
-### **5. Self-Healing Kubernetes Cluster on AWS**  
-**Objective:**  
-Deploy a **self-healing** app on EKS using Jenkins, Prometheus, and Terraform.  
-
-**Steps:**  
-- **Terraform** provisions EKS + Auto Scaling.  
-- Jenkins deploys a **Flask/Python app** with **liveness/readiness probes**.  
-- Use **Prometheus + Grafana** for monitoring.  
-
----
-
-### **6. Multi-Branch Pipeline for GitOps**  
-**Objective:**  
-Implement **GitOps** using Jenkins multi-branch pipelines and Kubernetes.  
-
-**Steps:**  
-- Jenkins detects **Git branches** → Builds & deploys to **different EKS namespaces** (dev/stage/prod).  
-- Use **Helm charts** for Kubernetes deployments.  
-
----
-
-### **7. Serverless CI/CD with Jenkins on EKS (Jenkins in Kubernetes)**  
-**Objective:**  
-Run **Jenkins inside EKS** (instead of EC2) for a cloud-native CI/CD.  
-
-**Steps:**  
-- **Terraform** provisions EKS.  
-- Deploy **Jenkins in Kubernetes** using Helm.  
-- Pipeline: Build → Scan → Deploy to EKS.  
-
----
-
-### **8. Immutable Infrastructure with Packer + Ansible + Terraform**  
-**Objective:**  
-Build **immutable infrastructure** using Packer (for AMI), Ansible, and Terraform.  
-
-**Steps:**  
-- **Packer + Ansible** → Create a custom AMI with Jenkins/Docker.  
-- **Terraform** → Deploy infrastructure using the AMI.  
-
----
-
-### **9. Canary Deployments on EKS using Istio**  
-**Objective:**  
-Implement **Canary deployments** on EKS using **Istio (Service Mesh)**.  
-
-**Steps:**  
-- **Terraform** provisions EKS.  
-- Jenkins deploys **v1 (90% traffic)** → **v2 (10% traffic)** → Gradually shift traffic.  
-
----
-
-### **10. Disaster Recovery Setup for Kubernetes**  
-**Objective:**  
-Automate **backup & recovery** of Kubernetes resources.  
-
-**Steps:**  
-- Use **Velero** to backup EKS cluster.  
-- **Jenkins pipeline** triggers backups periodically.  
-- **Terraform** recreates EKS if needed.  
-
----
-
-### **Common Tools Used Across Projects:**  
-| **Tool**         | **Purpose**                          |
-|------------------|-------------------------------------|
-| **Linux**        | Base OS for Jenkins/Nexus/SonarQube |
-| **Maven**        | Java project build tool             |
-| **SonarQube**    | Static code analysis                |
-| **Nexus**        | Artifact repository                |
-| **AWS**          | Cloud provider (EKS, EC2, ECR, etc.) |
-| **Jenkins**      | CI/CD automation                   |
-| **Kubernetes (EKS)** | Container orchestration          |
-| **Terraform**    | Infrastructure as Code (IaC)       |
-| **Ansible**      | Configuration management           |
-| **Docker**       | Containerization                   |
-
----
-
-### **Which One to Choose?**  
-- **For beginners:** Start with **Project 1 (Basic CI/CD)**.  
-- **For intermediate:** Try **Project 3 (Blue-Green)** or **Project 5 (Self-Healing)**.  
-- **For advanced:** **Project 9 (Istio Canary)** or **Project 10 (Disaster Recovery)**.  
-
-Would you like a detailed step-by-step guide for any of these? 🚀
-
-Here’s the **complete Markdown (`.md`) file** for all **10 real-time DevOps projects**, formatted for easy PDF conversion:
-
----
-
-```markdown
-# 10 Real-Time DevOps Projects  
-### Tools: Linux, Maven, SonarQube, Nexus, AWS, Jenkins, Kubernetes (EKS), Terraform, Ansible, Docker  
-
----
-
-## **Project 1: End-to-End CI/CD Pipeline for Java Microservices**  
-### Objective  
-Build a CI/CD pipeline for a Java app using Maven, SonarQube, Nexus, Jenkins, Docker, and EKS.  
-
-### Steps  
-1. **Infrastructure (Terraform)**  
-   - Provision EKS, EC2 (Jenkins/Nexus), VPC.  
-2. **CI Pipeline (Jenkins)**  
-   ```groovy
-   pipeline {
-     stages {
-       stage('Build') { sh 'mvn clean package' }
-       stage('SonarQube') { sh 'mvn sonar:sonar' }
-       stage('Nexus Push') { sh 'mvn deploy' }
-       stage('Docker Build') { sh 'docker build -t my-app .' }
-     }
-   }
-   ```  
-3. **CD Pipeline (EKS)**  
-   ```bash
-   kubectl apply -f deployment.yaml
-   ```
-
----
-
-## **Project 2: Infrastructure as Code (IaC) with Terraform & Ansible**  
-### Objective  
-Automate AWS infra provisioning and configuration.  
-
-### Steps  
-1. **Terraform** (`main.tf`):  
-   ```hcl
-   resource "aws_eks_cluster" "devops-cluster" {
-     name = "my-eks"
-   }
-   ```  
-2. **Ansible** (`playbook.yml`):  
-   ```yaml
-   - hosts: jenkins-server
-     tasks:
-       - name: Install Java
-         apt: pkg=openjdk-11-jdk
-   ```
-
----
-
-## **Project 3: Kubernetes Blue-Green Deployment on EKS**  
-### Objective  
-Zero-downtime deployments.  
-
-### Steps  
-1. Deploy **v1 (Blue)**:  
-   ```bash
-   kubectl apply -f blue-deployment.yaml
-   ```  
-2. Shift traffic to **v2 (Green)**:  
-   ```bash
-   kubectl apply -f green-deployment.yaml
-   ```
-
----
-
-## **Project 4: Automated Security Scanning in CI/CD**  
-### Tools  
-- SonarQube (Code Quality)  
-- Trivy (Docker Scan)  
-- OWASP Dependency-Check  
-
-### Jenkins Pipeline  
-```groovy
-stage('Security Scan') {
-  sh 'mvn org.owasp:dependency-check-maven:check'
-  sh 'trivy image my-app:latest'
-}
+To-Do List 3-Tier Application (React + Node.js + PostgreSQL)
+
+Folder Structure:
+
+```
+todo-app/
+├── backend/
+│   ├── controllers/
+│   │   └── authController.js
+│   │   └── todoController.js
+│   ├── models/
+│   │   └── index.js
+│   │   └── user.js
+│   │   └── todo.js
+│   ├── routes/
+│   │   └── auth.js
+│   │   └── todos.js
+│   ├── middleware/
+│   │   └── authMiddleware.js
+│   ├── app.js
+│   ├── config.js
+│   ├── Dockerfile
+│   └── package.json
+│
+├── frontend/
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── Login.js
+│   │   │   └── Register.js
+│   │   │   └── TodoList.js
+│   │   ├── App.js
+│   │   ├── index.js
+│   │   └── App.css
+│   ├── Dockerfile
+│   └── package.json
+│
+├── database/
+│   └── init.sql
+│   └── Dockerfile
+│
+├── docker-compose.yml
+├── README.md
 ```
 
----
+### Key Features:
+- User Registration and Login with JWT
+- Task creation, update, deletion
+- Auth-protected routes
+- PostgreSQL DB with Sequelize ORM
 
-## **Project 5: Self-Healing Kubernetes Cluster on EKS**  
-### Objective  
-Auto-recover failed pods.  
+### Backend Code
 
-### Example Probe (`deployment.yaml`)  
-```yaml
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-```
-
----
-
-## **Project 6: Multi-Branch Pipeline for GitOps**  
-### Objective  
-Git-triggered deployments to EKS namespaces.  
-
-### Steps  
-1. Jenkinsfile:  
-   ```groovy
-   pipeline {
-     triggers { pollSCM('* * * * *') }
-     stages {
-       stage('Deploy to Dev') { sh 'kubectl apply -f dev/' }
-     }
-   }
-   ```
-
----
-
-## **Project 7: Serverless CI/CD with Jenkins on EKS**  
-### Objective  
-Run Jenkins inside Kubernetes.  
-
-### Steps  
-1. Deploy Jenkins via Helm:  
-   ```bash
-   helm install jenkins jenkins/jenkins
-   ```
-
----
-
-## **Project 8: Immutable Infrastructure with Packer + Ansible**  
-### Objective  
-Build custom AMIs.  
-
-### Packer Template (`packer.json`)  
+#### `backend/package.json`
 ```json
 {
-  "builders": [{
-    "type": "amazon-ebs",
-    "ami_name": "jenkins-ami"
-  }]
+  "name": "todo-backend",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "pg": "^8.8.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.28.0"
+  }
 }
 ```
 
----
+#### `backend/app.js`
+```js
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+const authRoutes = require('./routes/auth');
+const todoRoutes = require('./routes/todos');
+const db = require('./models');
 
-## **Project 9: Canary Deployments on EKS using Istio**  
-### Objective  
-Gradual traffic shifting.  
+const app = express();
 
-### Istio VirtualService  
-```yaml
-http:
-- route:
-  - destination: { host: v1 }
-    weight: 90
-  - destination: { host: v2 }
-    weight: 10
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/auth', authRoutes);
+app.use('/api/todos', todoRoutes);
+
+const PORT = process.env.PORT || 5000;
+db.sequelize.sync().then(() => {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+});
 ```
 
----
+#### `backend/config.js`
+```js
+require('dotenv').config();
 
-## **Project 10: Disaster Recovery for Kubernetes**  
-### Objective  
-Backup EKS with Velero.  
-
-### Steps  
-1. Schedule backups:  
-   ```bash
-   velero schedule create daily --schedule="@every 24h"
-   ```
-
----
-
-## **How to Convert to PDF**  
-1. **VS Code**: Install "Markdown PDF" extension → Right-click → "Export as PDF".  
-2. **Pandoc**:  
-   ```bash
-   pandoc DevOps-Projects.md -o DevOps-Projects.pdf
-   ```  
-3. **Online**: Use [MarkdowntoPDF](https://markdowntopdf.com/).  
-
----
-
-### **Need Help?**  
-- Want **detailed steps** for a specific project?  
-- Need a **pre-made PDF**? Share your email for a Google Drive link!  
-
-🚀 **Happy DevOps Automation!**  
+module.exports = {
+  secret: process.env.JWT_SECRET || 'secretkey',
+  db: {
+    DB: process.env.DB_NAME,
+    USER: process.env.DB_USER,
+    PASSWORD: process.env.DB_PASSWORD,
+    HOST: process.env.DB_HOST,
+    dialect: 'postgres',
+  }
+};
 ```
 
----
+#### `backend/models/index.js`
+```js
+const Sequelize = require('sequelize');
+const config = require('../config').db;
 
-### **How to Use This File**  
-1. **Copy the entire Markdown text** above.  
-2. **Save as `DevOps-Projects.md`**.  
-3. **Convert to PDF** using:  
-   - **VS Code** (with "Markdown PDF" extension).  
-   - **Pandoc** (command-line).  
-   - **Online converters** (e.g., [MarkdowntoPDF](https://markdowntopdf.com/)).  
+const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
+  host: config.HOST,
+  dialect: config.dialect,
+});
+
+const db = {};
+db.Sequelize = Sequelize;
+db.sequelize = sequelize;
+
+db.User = require('./user')(sequelize, Sequelize);
+db.Todo = require('./todo')(sequelize, Sequelize);
+
+db.User.hasMany(db.Todo);
+db.Todo.belongsTo(db.User);
+
+module.exports = db;
+```
+
+#### `backend/models/user.js`
+```js
+module.exports = (sequelize, DataTypes) => {
+  return sequelize.define('User', {
+    username: { type: DataTypes.STRING, unique: true },
+    password: { type: DataTypes.STRING },
+  });
+};
+```
+
+#### `backend/models/todo.js`
+```js
+module.exports = (sequelize, DataTypes) => {
+  return sequelize.define('Todo', {
+    title: { type: DataTypes.STRING },
+    completed: { type: DataTypes.BOOLEAN, defaultValue: false },
+  });
+};
+```
+
+#### `backend/routes/auth.js`
+```js
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { User } = require('../models');
+const { secret } = require('../config');
+
+const router = express.Router();
+
+router.post('/register', async (req, res) => {
+  const { username, password } = req.body;
+  const hash = await bcrypt.hash(password, 10);
+  try {
+    const user = await User.create({ username, password: hash });
+    res.status(201).json({ message: 'User registered' });
+  } catch {
+    res.status(400).json({ message: 'User already exists' });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ where: { username } });
+  if (!user || !(await bcrypt.compare(password, user.password)))
+    return res.status(401).json({ message: 'Invalid credentials' });
+
+  const token = jwt.sign({ id: user.id }, secret, { expiresIn: '1d' });
+  res.json({ token });
+});
+
+module.exports = router;
+```
+
+#### `backend/routes/todos.js`
+```js
+const express = require('express');
+const { Todo } = require('../models');
+const auth = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+router.use(auth);
+
+router.get('/', async (req, res) => {
+  const todos = await Todo.findAll({ where: { UserId: req.userId } });
+  res.json(todos);
+});
+
+router.post('/', async (req, res) => {
+  const todo = await Todo.create({ ...req.body, UserId: req.userId });
+  res.json(todo);
+});
+
+router.put('/:id', async (req, res) => {
+  const todo = await Todo.findByPk(req.params.id);
+  if (todo && todo.UserId === req.userId) {
+    await todo.update(req.body);
+    res.json(todo);
+  } else res.status(404).json({ message: 'Not found' });
+});
+
+router.delete('/:id', async (req, res) => {
+  const todo = await Todo.findByPk(req.params.id);
+  if (todo && todo.UserId === req.userId) {
+    await todo.destroy();
+    res.json({ message: 'Deleted' });
+  } else res.status(404).json({ message: 'Not found' });
+});
+
+module.exports = router;
+```
+
+#### `backend/middleware/authMiddleware.js`
+```js
+const jwt = require('jsonwebtoken');
+const { secret } = require('../config');
+
+module.exports = (req, res, next) => {
+  const token = req.headers['authorization'];
+  if (!token) return res.status(403).json({ message: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, secret);
+    req.userId = decoded.id;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Unauthorized' });
+  }
+};
+```
+
+#### `backend/Dockerfile`
+```Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+EXPOSE 5000
+CMD ["npm", "start"]
+```
