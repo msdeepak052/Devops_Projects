@@ -1056,4 +1056,202 @@ volumeBindingMode: WaitForFirstConsumer
    - Implement blue-green or canary deployments for frontend/backend
    - Add rollback mechanisms
 
-This setup provides a fully containerized, scalable deployment of your Todo application on EKS with proper separation of concerns, persistent storage, and automated CI/CD pipelines.
+#### This setup provides a fully containerized, scalable deployment of your Todo application on EKS with proper separation of concerns, persistent storage, and automated CI/CD pipelines.
+
+
+Here's a step-by-step guide to implement an AWS-managed database (Aurora PostgreSQL) instead of self-managed PostgreSQL in EKS, eliminating the need for persistent volume management:
+
+### **Step 1: Create an Aurora PostgreSQL Database**
+
+1. **Go to AWS RDS Console**:
+   - Navigate to **Amazon RDS** > **Create database**
+
+2. **Select Database Type**:
+   - Choose **Amazon Aurora PostgreSQL-Compatible Edition**
+   - Select **Serverless** (for auto-scaling) or **Provisioned** (for fixed capacity)
+
+3. **Configure Database Settings**:
+   - **DB Cluster Identifier**: `todo-db-cluster`
+   - **Master Username**: `postgres` (or custom)
+   - **Master Password**: Set a strong password (store in AWS Secrets Manager later)
+   - **DB Instance Class**: `db.t3.medium` (or appropriate size)
+   - **Storage**: Auto-scaling enabled (default 10 GiB)
+
+4. **Network & Security**:
+   - **Virtual Private Cloud (VPC)**: Select the same VPC as your EKS cluster
+   - **Subnet Group**: Default or create a new one
+   - **Public Access**: **No** (for security)
+   - **VPC Security Group**: Create a new one (e.g., `rds-todo-sg`)
+
+5. **Additional Configuration**:
+   - **Initial Database Name**: `todos`
+   - **Backup Retention Period**: `7 days` (adjust as needed)
+   - **Enable Encryption**: **Yes** (AWS KMS)
+   - **Disable Auto Minor Version Upgrade**: Optional
+
+6. **Click "Create Database"**
+
+---
+
+### **Step 2: Configure Security Group for EKS Access**
+
+1. **Go to EC2 Security Groups**:
+   - Find the security group `rds-todo-sg` created for RDS.
+
+2. **Edit Inbound Rules**:
+   - Add a rule to allow PostgreSQL (`5432`) traffic from:
+     - **Source**: The security group of your EKS worker nodes (or backend pods if using VPC CNI).
+
+---
+
+### **Step 3: Store DB Credentials in AWS Secrets Manager**
+
+1. **Go to AWS Secrets Manager**:
+   - Click **Store a new secret**.
+   - Select **Credentials for RDS database**.
+   - Enter:
+     - **Username**: `postgres`
+     - **Password**: (The one you set for RDS)
+     - **Database**: `todos`
+     - **Server Address**: (Get from RDS endpoint)
+   - Click **Next**.
+
+2. **Secret Name**:
+   - Name it `todo-app/db-creds`.
+
+3. **Click "Store"**.
+
+---
+
+### **Step 4: Update Backend Deployment to Use Aurora**
+
+Modify `backend/deployment.yaml` to use RDS instead of in-cluster PostgreSQL:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: todo-app
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: backend
+        image: <your-ecr-repo>/todo-backend:latest
+        env:
+        - name: DB_HOST
+          value: "<aurora-cluster-endpoint>" # Get from RDS console
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: aws-db-creds  # Will sync from Secrets Manager
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: aws-db-creds
+              key: password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: aws-db-creds
+              key: dbname
+```
+
+---
+
+### **Step 5: Sync Secrets Manager to Kubernetes**
+
+Use **AWS Secrets & Configuration Provider (ASCP)** to sync secrets:
+
+1. **Install ASCP**:
+   ```bash
+   helm repo add secrets-store-csi-driver https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts
+   helm install csi-secrets-store secrets-store-csi-driver/secrets-store-csi-driver --namespace kube-system
+   ```
+
+2. **Install AWS Provider**:
+   ```bash
+   kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
+   ```
+
+3. **Create SecretProviderClass** (`secret-provider.yaml`):
+   ```yaml
+   apiVersion: secrets-store.csi.x-k8s.io/v1
+   kind: SecretProviderClass
+   metadata:
+     name: aws-db-creds
+     namespace: todo-app
+   spec:
+     provider: aws
+     parameters:
+       objects: |
+         - objectName: "todo-app/db-creds"
+           objectType: "secretsmanager"
+   ```
+
+4. **Apply**:
+   ```bash
+   kubectl apply -f secret-provider.yaml
+   ```
+
+5. **Update Backend Deployment** to mount secrets:
+   ```yaml
+   spec:
+     template:
+       spec:
+         containers:
+         - name: backend
+           volumeMounts:
+           - name: db-secrets
+             mountPath: "/mnt/secrets"
+             readOnly: true
+         volumes:
+         - name: db-secrets
+           csi:
+             driver: secrets-store.csi.k8s.io
+             readOnly: true
+             volumeAttributes:
+               secretProviderClass: "aws-db-creds"
+   ```
+
+---
+
+### **Step 6: Deploy Updated Backend**
+
+```bash
+kubectl apply -f backend/deployment.yaml -n todo-app
+```
+
+---
+
+### **Step 7: Verify Connectivity**
+
+1. **Check Backend Logs**:
+   ```bash
+   kubectl logs -l app=backend -n todo-app
+   ```
+   - Look for "Connected to database".
+
+2. **Test API**:
+   ```bash
+   kubectl port-forward svc/backend 8080:80 -n todo-app
+   curl http://localhost:8080/api/todos
+   ```
+
+---
+
+### **Key Benefits of AWS-Managed Database**:
+✅ **No Persistent Volume Management** (AWS handles storage)  
+✅ **Auto-Scaling** (Aurora Serverless)  
+✅ **Automated Backups & Patching**  
+✅ **High Availability** (Multi-AZ deployments)  
+✅ **Security** (IAM integration, KMS encryption)  
+
+### **Cost Considerations**:
+- Aurora has higher costs than self-managed PostgreSQL but reduces operational overhead.
+- Use **Serverless** for variable workloads or **Provisioned** for predictable traffic.
+
+
