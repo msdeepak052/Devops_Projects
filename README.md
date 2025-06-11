@@ -257,3 +257,285 @@ COPY . .
 EXPOSE 5000
 CMD ["npm", "start"]
 ```
+
+
+#### `backend/controllers/authController.js`
+```js
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { User } = require('../models');
+const { secret } = require('../config');
+
+exports.register = async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const user = await User.create({ username, password: hash });
+    res.status(201).json({ message: 'User registered' });
+  } catch (err) {
+    res.status(400).json({ message: 'User already exists' });
+  }
+};
+
+exports.login = async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ where: { username } });
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+  const token = jwt.sign({ id: user.id }, secret, { expiresIn: '1d' });
+  res.json({ token });
+};
+```
+
+#### `backend/controllers/todoController.js`
+```js
+const { Todo } = require('../models');
+
+exports.getTodos = async (req, res) => {
+  const todos = await Todo.findAll({ where: { UserId: req.userId } });
+  res.json(todos);
+};
+
+exports.createTodo = async (req, res) => {
+  const todo = await Todo.create({ ...req.body, UserId: req.userId });
+  res.json(todo);
+};
+
+exports.updateTodo = async (req, res) => {
+  const todo = await Todo.findByPk(req.params.id);
+  if (todo && todo.UserId === req.userId) {
+    await todo.update(req.body);
+    res.json(todo);
+  } else {
+    res.status(404).json({ message: 'Not found' });
+  }
+};
+
+exports.deleteTodo = async (req, res) => {
+  const todo = await Todo.findByPk(req.params.id);
+  if (todo && todo.UserId === req.userId) {
+    await todo.destroy();
+    res.json({ message: 'Deleted' });
+  } else {
+    res.status(404).json({ message: 'Not found' });
+  }
+};
+```
+
+### Key Features:
+- User Registration and Login with JWT
+- Task creation, update, deletion
+- Auth-protected routes
+- PostgreSQL DB with Sequelize ORM
+
+
+### Frontend Code
+
+#### `frontend/public/index.html`
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do App</title>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
+```
+
+#### `frontend/src/index.js`
+```js
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './App';
+import './App.css';
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+```
+
+#### `frontend/src/App.js`
+```js
+import React, { useState, useEffect } from 'react';
+import Login from './components/Login';
+import Register from './components/Register';
+import TodoList from './components/TodoList';
+
+function App() {
+  const [token, setToken] = useState(localStorage.getItem('token'));
+
+  const handleLogin = (token) => {
+    localStorage.setItem('token', token);
+    setToken(token);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+  };
+
+  if (!token) {
+    return (
+      <div>
+        <h2>Login</h2>
+        <Login onLogin={handleLogin} />
+        <h2>Register</h2>
+        <Register />
+      </div>
+    );
+  }
+
+  return <TodoList token={token} onLogout={handleLogout} />;
+}
+
+export default App;
+```
+
+#### `frontend/src/App.css`
+```css
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  margin: 0;
+  padding: 20px;
+}
+input, button {
+  margin: 5px;
+  padding: 8px;
+}
+```
+
+#### `frontend/src/components/Login.js`
+```js
+import React, { useState } from 'react';
+
+const Login = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (res.ok) onLogin(data.token);
+    else alert(data.message);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <button type="submit">Login</button>
+    </form>
+  );
+};
+
+export default Login;
+```
+
+#### `frontend/src/components/Register.js`
+```js
+import React, { useState } from 'react';
+
+const Register = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (res.ok) alert('Registered! You can log in now.');
+    else alert(data.message);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <button type="submit">Register</button>
+    </form>
+  );
+};
+
+export default Register;
+```
+
+#### `frontend/src/components/TodoList.js`
+```js
+import React, { useState, useEffect } from 'react';
+
+const TodoList = ({ token, onLogout }) => {
+  const [todos, setTodos] = useState([]);
+  const [task, setTask] = useState('');
+
+  const fetchTodos = async () => {
+    const res = await fetch('/api/todos', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setTodos(data);
+  };
+
+  const addTodo = async () => {
+    const res = await fetch('/api/todos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ task }),
+    });
+    if (res.ok) {
+      setTask('');
+      fetchTodos();
+    }
+  };
+
+  const deleteTodo = async (id) => {
+    await fetch(`/api/todos/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchTodos();
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  return (
+    <div>
+      <button onClick={onLogout}>Logout</button>
+      <h2>Your Todos</h2>
+      <input value={task} onChange={(e) => setTask(e.target.value)} placeholder="New task" />
+      <button onClick={addTodo}>Add</button>
+      <ul>
+        {todos.map((t) => (
+          <li key={t.id}>
+            {t.task} <button onClick={() => deleteTodo(t.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default TodoList;
+```
