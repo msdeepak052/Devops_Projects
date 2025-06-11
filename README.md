@@ -645,4 +645,415 @@ CREATE TABLE IF NOT EXISTS todos (
 );
 ```
 
+## Here's a comprehensive solution for deploying your 3-tier Todo application on Amazon EKS with separate deployments, persistent volumes, and Jenkins pipelines:
 
+
+### 1. Infrastructure Setup
+
+#### EKS Cluster Configuration
+```bash
+eksctl create cluster \
+  --name todo-cluster \
+  --region us-west-2 \
+  --nodegroup-name standard-workers \
+  --node-type t3.medium \
+  --nodes 3 \
+  --nodes-min 1 \
+  --nodes-max 4 \
+  --managed
+```
+
+### 2. Kubernetes Manifests (Separate for each tier)
+
+#### Namespace (todo-namespace.yaml)
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: todo-app
+```
+
+#### Database Tier (postgres/)
+
+1. **Persistent Volume Claim (pvc.yaml)**
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: todo-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+2. **Deployment (deployment.yaml)**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: <your-ecr-repo>/todo-db:latest
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: password
+        - name: POSTGRES_DB
+          value: "todos"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+```
+
+3. **Service (service.yaml)**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: todo-app
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+```
+
+#### Backend Tier (backend/)
+
+1. **Deployment (deployment.yaml)**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: todo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: <your-ecr-repo>/todo-backend:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DB_HOST
+          value: "postgres.todo-app.svc.cluster.local"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: password
+        - name: DB_NAME
+          value: "todos"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secrets
+              key: jwt-secret
+```
+
+2. **Service (service.yaml)**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: todo-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+```
+
+#### Frontend Tier (frontend/)
+
+1. **Deployment (deployment.yaml)**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: todo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: <your-ecr-repo>/todo-frontend:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: REACT_APP_API_URL
+          value: "http://backend.todo-app.svc.cluster.local"
+```
+
+2. **Service (service.yaml)**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: todo-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+```
+
+### 3. Jenkins Pipeline Setup
+
+#### Database Pipeline (Jenkinsfile-db)
+```groovy
+pipeline {
+  agent any
+  environment {
+    ECR_REPO = '<your-account-id>.dkr.ecr.<region>.amazonaws.com/todo-db'
+    CLUSTER = 'todo-cluster'
+    REGION = 'us-west-2'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        git branch: 'main', url: 'https://github.com/your-repo/todo-app.git'
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        dir('database') {
+          sh 'docker build -t ${ECR_REPO}:${BUILD_NUMBER} .'
+        }
+      }
+    }
+    stage('Push to ECR') {
+      steps {
+        script {
+          awsAuth = awsEcrLogin()
+          sh "docker push ${ECR_REPO}:${BUILD_NUMBER}"
+        }
+      }
+    }
+    stage('Deploy to EKS') {
+      steps {
+        withKubeConfig([credentialsId: 'eks-credentials', clusterName: CLUSTER]) {
+          sh "kubectl set image deployment/postgres postgres=${ECR_REPO}:${BUILD_NUMBER} -n todo-app"
+        }
+      }
+    }
+  }
+}
+```
+
+#### Backend Pipeline (Jenkinsfile-backend)
+```groovy
+pipeline {
+  agent any
+  environment {
+    ECR_REPO = '<your-account-id>.dkr.ecr.<region>.amazonaws.com/todo-backend'
+    CLUSTER = 'todo-cluster'
+    REGION = 'us-west-2'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        git branch: 'main', url: 'https://github.com/your-repo/todo-app.git'
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        dir('backend') {
+          sh 'docker build -t ${ECR_REPO}:${BUILD_NUMBER} .'
+        }
+      }
+    }
+    stage('Push to ECR') {
+      steps {
+        script {
+          awsAuth = awsEcrLogin()
+          sh "docker push ${ECR_REPO}:${BUILD_NUMBER}"
+        }
+      }
+    }
+    stage('Deploy to EKS') {
+      steps {
+        withKubeConfig([credentialsId: 'eks-credentials', clusterName: CLUSTER]) {
+          sh "kubectl set image deployment/backend backend=${ECR_REPO}:${BUILD_NUMBER} -n todo-app"
+        }
+      }
+    }
+  }
+}
+```
+
+#### Frontend Pipeline (Jenkinsfile-frontend)
+```groovy
+pipeline {
+  agent any
+  environment {
+    ECR_REPO = '<your-account-id>.dkr.ecr.<region>.amazonaws.com/todo-frontend'
+    CLUSTER = 'todo-cluster'
+    REGION = 'us-west-2'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        git branch: 'main', url: 'https://github.com/your-repo/todo-app.git'
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        dir('frontend') {
+          sh 'docker build -t ${ECR_REPO}:${BUILD_NUMBER} .'
+        }
+      }
+    }
+    stage('Push to ECR') {
+      steps {
+        script {
+          awsAuth = awsEcrLogin()
+          sh "docker push ${ECR_REPO}:${BUILD_NUMBER}"
+        }
+      }
+    }
+    stage('Deploy to EKS') {
+      steps {
+        withKubeConfig([credentialsId: 'eks-credentials', clusterName: CLUSTER]) {
+          sh "kubectl set image deployment/frontend frontend=${ECR_REPO}:${BUILD_NUMBER} -n todo-app"
+        }
+      }
+    }
+  }
+}
+```
+
+### 4. Additional Configuration
+
+#### Secrets (kubectl commands)
+```bash
+# Database secrets
+kubectl create secret generic db-secrets -n todo-app \
+  --from-literal=username=postgres \
+  --from-literal=password=your-strong-password
+
+# Backend JWT secret
+kubectl create secret generic backend-secrets -n todo-app \
+  --from-literal=jwt-secret=your-strong-jwt-secret
+```
+
+#### Storage Class (if not using default gp2)
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  fsType: ext4
+volumeBindingMode: WaitForFirstConsumer
+```
+
+### 5. Deployment Workflow
+
+1. **Initialize Infrastructure**:
+   ```bash
+   kubectl apply -f todo-namespace.yaml
+   kubectl apply -f storage-class.yaml
+   kubectl apply -f secrets/
+   ```
+
+2. **Deploy Database First**:
+   ```bash
+   kubectl apply -f postgres/
+   ```
+
+3. **Deploy Backend**:
+   ```bash
+   kubectl apply -f backend/
+   ```
+
+4. **Deploy Frontend**:
+   ```bash
+   kubectl apply -f frontend/
+   ```
+
+### Key Considerations:
+
+1. **Network Communication**:
+   - Services communicate using Kubernetes DNS (`<service-name>.<namespace>.svc.cluster.local`)
+
+2. **Persistent Storage**:
+   - Database uses EBS-backed persistent volume
+   - Ensure proper backup strategy for production
+
+3. **Security**:
+   - Use IAM roles for service accounts (IRSA) for ECR access
+   - Implement network policies for pod communication
+   - Use TLS for all services
+
+4. **Monitoring**:
+   - Implement Prometheus/Grafana for monitoring
+   - Set up logging with Fluentd/Elasticsearch/Kibana
+
+5. **CI/CD**:
+   - Add testing stages to pipelines
+   - Implement blue-green or canary deployments for frontend/backend
+   - Add rollback mechanisms
+
+This setup provides a fully containerized, scalable deployment of your Todo application on EKS with proper separation of concerns, persistent storage, and automated CI/CD pipelines.
