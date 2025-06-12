@@ -446,17 +446,19 @@ spec:
 
 ### Docker testing
 
-Build the backend image (from project root):
+#### Build the backend image (from project root):
 
 ```bash
-docker build -t expense-backend -f backend/Dockerfile ./backend```
-Run the services:
+docker build -t expense-backend -f backend/Dockerfile ./backend
+```
+
+#### Run the services:
 
 
-# Create network
+#### Create network
 ```docker network create expense-tracker-net```
 
-# Start PostgreSQL
+##### Start PostgreSQL
 ```docker run -d \
   --name expense-db \
   --network expense-tracker-net \
@@ -471,7 +473,7 @@ Run the services:
 # Wait for DB to initialize
 ```sleep 15 ```
 
-# Start backend
+#### Start backend
 ```docker run -d \
   --name backend \
   --network expense-tracker-net \
