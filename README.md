@@ -444,4 +444,46 @@ spec:
 
 ---
 
+### Docker testing
+
+Build the backend image (from project root):
+
+```bash
+docker build -t expense-backend -f backend/Dockerfile ./backend```
+Run the services:
+
+
+# Create network
+```docker network create expense-tracker-net```
+
+# Start PostgreSQL
+```docker run -d \
+  --name expense-db \
+  --network expense-tracker-net \
+  -e POSTGRES_USER=user \
+  -e POSTGRES_PASSWORD=pass \
+  -e POSTGRES_DB=expenses_db \
+  -p 5432:5432 \
+  postgres:13-alpine
+
+```
+
+# Wait for DB to initialize
+```sleep 15 ```
+
+# Start backend
+```docker run -d \
+  --name backend \
+  --network expense-tracker-net \
+  -e DATABASE_URL="postgresql://user:pass@expense-db:5432/expenses_db" \
+  -p 8000:8000 \
+  expense-backend
+```
+#### Verify it's working:
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"category":"Test","amount":10.5}' http://localhost:8000/expenses/
+curl http://localhost:8000/expenses/
+```
+
 🎯 You now have a full-stack, CI/CD-enabled app running in EKS with managed Postgres. Want to tailor logging, security, or add a Helm chart? Just say the word!
