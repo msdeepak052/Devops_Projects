@@ -456,10 +456,14 @@ docker build -t expense-backend -f backend/Dockerfile ./backend
 
 
 #### Create network
-```docker network create expense-tracker-net```
+```bash 
+docker network create expense-tracker-net
+
+```
 
 ##### Start PostgreSQL
-```docker run -d \
+```bash
+ docker run -d \
   --name expense-db \
   --network expense-tracker-net \
   -e POSTGRES_USER=user \
@@ -474,7 +478,8 @@ docker build -t expense-backend -f backend/Dockerfile ./backend
 ```sleep 15 ```
 
 #### Start backend
-```docker run -d \
+```bash
+  docker run -d \
   --name backend \
   --network expense-tracker-net \
   -e DATABASE_URL="postgresql://user:pass@expense-db:5432/expenses_db" \
