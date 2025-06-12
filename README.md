@@ -12,16 +12,18 @@ expense-tracker/
 │   │   └── index.html
 │   ├── requirements.txt
 │   └── Dockerfile
-├── backend/
+backend/
+├── Dockerfile
+├── requirements.txt
+├── app/
+│   ├── __init__.py
 │   ├── main.py
 │   ├── models.py
 │   ├── schemas.py
 │   ├── crud.py
 │   ├── database.py
-│   ├── tests/
-│   │   └── test_api.py
-│   ├── requirements.txt
-│   └── Dockerfile
+│   └── tests/
+│       └── test_api.py
 ├── jenkins/
 │   ├── frontend/Jenkinsfile
 │   └── backend/Jenkinsfile
@@ -104,7 +106,7 @@ CMD ["python", "app.py", "--host=0.0.0.0", "--port=5000"]
 
 ## 🧩 2. Backend - FastAPI
 
-### `backend/database.py`
+### `backend/app/database.py`
 
 ```python
 from sqlalchemy import create_engine
@@ -118,11 +120,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 ```
 
-### `backend/models.py`
+### `backend/app/models.py`
 
 ```python
 from sqlalchemy import Column, Integer, String, Float, DateTime, func
-from .database import Base
+from app.database import Base
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -132,7 +134,7 @@ class Expense(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 ```
 
-### `backend/schemas.py`
+### `backend/app/schemas.py`
 
 ```python
 from pydantic import BaseModel
@@ -151,11 +153,11 @@ class Expense(BaseModel):
         orm_mode = True
 ```
 
-### `backend/crud.py`
+### `backend/app/crud.py`
 
 ```python
 from sqlalchemy.orm import Session
-from . import models, schemas
+from app import models, schemas
 
 def get_expenses(db: Session):
     return db.query(models.Expense).all()
@@ -168,16 +170,17 @@ def create_expense(db: Session, expense: schemas.ExpenseCreate):
     return db_exp
 ```
 
-### `backend/main.py`
+### `backend/app/main.py`
 
 ```python
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
-from . import models, schemas, crud, database
+from app import models, schemas, crud, database
 import os
 
 models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
+
 def get_db():
     db = database.SessionLocal()
     try: yield db
@@ -201,11 +204,11 @@ sqlalchemy==2.0.19
 psycopg2-binary==2.9.7
 ```
 
-### `backend/tests/test_api.py`
+### `backend/app/tests/test_api.py`
 
 ```python
 from fastapi.testclient import TestClient
-from ..main import app
+from app.main import app
 
 client = TestClient(app)
 
@@ -227,8 +230,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
+### `backend/init.py`
+
+```empty file  ```
 
 ---
 
