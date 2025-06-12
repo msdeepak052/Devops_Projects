@@ -493,4 +493,122 @@ curl -X POST -H "Content-Type: application/json" -d '{"category":"Test","amount"
 curl http://localhost:8000/expenses/
 ```
 
-🎯 You now have a full-stack, CI/CD-enabled app running in EKS with managed Postgres. Want to tailor logging, security, or add a Helm chart? Just say the word!
+# End-to-End Connectivity Guide for Expense Tracker App on EKS
+
+Let me explain how the frontend, backend, and database connect in this architecture when deployed on EKS.
+
+## 1. Database Connection (Backend to RDS)
+
+**Where it's configured:**
+- `backend/app/database.py` contains the database connection logic
+- The connection string comes from the environment variable `DATABASE_URL`
+
+**Key points:**
+```python
+DATABASE_URL = os.getenv("DATABASE_URL")  # Format: postgresql://user:password@host:port/dbname
+engine = create_engine(DATABASE_URL)
+```
+
+**When deploying to EKS:**
+1. You'll need to create an RDS PostgreSQL instance
+2. Store the connection details in a Kubernetes Secret:
+   ```yaml
+   # k8s/configmap-secret.yaml
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: backend-secrets
+   type: Opaque
+   data:
+     DATABASE_URL: <base64-encoded-connection-string>
+   ```
+3. Mount this secret to your backend deployment
+
+## 2. Frontend to Backend Connection
+
+**Where it's configured:**
+- `frontend/app.py` has the backend API URL configuration:
+  ```python
+  API_URL = "http://backend:8000"  # 'backend' is the Kubernetes service name
+  ```
+
+**Key points:**
+1. The frontend connects to backend using the Kubernetes service name (`backend`)
+2. Port 8000 is the default FastAPI port (configured in backend's Dockerfile)
+
+**When deploying to EKS:**
+1. You'll need:
+   - A backend Service (ClusterIP) exposing port 8000
+   - A frontend Service (LoadBalancer) exposing port 5000
+
+Example service definitions:
+```yaml
+# k8s/service-backend.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+
+# k8s/service-frontend.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+```
+
+## 3. Network Flow in EKS
+
+```
+Internet User → AWS ALB (via frontend Service) → Frontend Pod (port 5000)
+Frontend Pod → Backend Service (DNS name "backend") → Backend Pod (port 8000)
+Backend Pod → RDS Endpoint (from DATABASE_URL secret)
+```
+
+## 4. Port Configuration Summary
+
+| Component | Container Port | Service Port | Exposed As |
+|-----------|----------------|--------------|------------|
+| Frontend  | 5000           | 80 (Service) | ALB (port 80) |
+| Backend   | 8000           | 8000         | Cluster-internal (backend:8000) |
+
+## 5. Required Kubernetes Manifests
+
+You'll need these essential manifests:
+
+1. **Deployments** (frontend-deployment.yaml, backend-deployment.yaml)
+   - Ensure backend has the secret mounted
+   - Both should have proper liveness/readiness probes
+
+2. **Services** (service-frontend.yaml, service-backend.yaml)
+   - Frontend as LoadBalancer
+   - Backend as ClusterIP
+
+3. **ConfigMap/Secret** (configmap-secret.yaml)
+   - Contains DATABASE_URL and any other configs
+
+4. **Ingress** (optional, if using ALB)
+   - To route traffic to frontend service
+
+## 6. DNS Resolution in EKS
+
+- Frontend accesses backend via Kubernetes DNS:
+  - Service name `backend` resolves to ClusterIP
+  - Port 8000 is the backend service port
+- Backend accesses RDS via the full RDS endpoint URL from the secret
+
+Would you like me to provide the complete deployment YAML files or explain any specific part in more detail?
