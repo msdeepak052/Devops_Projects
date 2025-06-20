@@ -174,6 +174,10 @@ chmod 700 get_helm.sh
 ./get_helm.sh
 rm get_helm.sh
 
+# Initialize Helm (this creates the config files)
+helm repo add stable https://charts.helm.sh/stable
+helm repo update
+
 # Configure Helm for jenkins user
 sudo mkdir -p /var/lib/jenkins/.config/helm
 sudo cp -r /root/.config/helm /var/lib/jenkins/.config/
