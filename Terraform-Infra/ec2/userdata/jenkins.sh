@@ -167,26 +167,7 @@ else
   exit 1
 fi
 
-# Install Helm
-echo "Installing Helm..."
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
-rm get_helm.sh
 
-# Initialize Helm (this creates the config files)
-helm repo add stable https://charts.helm.sh/stable
-helm repo update
-
-# Configure Helm for jenkins user
-sudo mkdir -p /var/lib/jenkins/.config/helm
-sudo cp -r /root/.config/helm /var/lib/jenkins/.config/
-sudo chown -R jenkins:jenkins /var/lib/jenkins/.config/helm
-
-# Configure Helm for ubuntu user
-sudo mkdir -p /home/ubuntu/.config/helm
-sudo cp -r /root/.config/helm /home/ubuntu/.config/
-sudo chown -R ubuntu:ubuntu /home/ubuntu/.config/helm
 # ---------------------------------------------------------------------------------
 
 # Update kubeconfig
@@ -214,6 +195,44 @@ sudo -u jenkins kubectl get nodes
 sudo -u ubuntu kubectl get nodes
 
 sudo -u jenkins kubectl get nodes
+
+# Install Helm
+echo "Installing Helm..."
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+rm get_helm.sh
+
+# Configure Helm for all users (root, jenkins, ubuntu)
+for USER in root jenkins ubuntu; do
+  if id "$USER" &>/dev/null; then
+    echo "Configuring Helm for $USER"
+    
+    # Get user's home directory
+    USER_HOME=$(eval echo ~$USER)
+    
+    # Create and permission .config directory
+    sudo mkdir -p $USER_HOME/.config/helm
+    sudo chown -R $USER:$USER $USER_HOME/.config
+    sudo chmod 755 $USER_HOME/.config
+    sudo chmod 755 $USER_HOME/.config/helm
+    
+    # Initialize Helm as the user
+    if [ "$USER" = "root" ]; then
+      helm repo add stable https://charts.helm.sh/stable
+      helm repo update
+    else
+      sudo -u $USER helm repo add stable https://charts.helm.sh/stable
+      sudo -u $USER helm repo update
+    fi
+  fi
+done
+
+# Verify installations
+echo "Helm versions:"
+echo "Root: $(helm version --short)"
+echo "Jenkins: $(sudo -u jenkins helm version --short)"
+echo "Ubuntu: $(sudo -u ubuntu helm version --short)"
 # ---------------------------------------------------------------------------------
 # Wait for Jenkins to be ready
 echo "Waiting for Jenkins to start..."
