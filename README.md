@@ -168,6 +168,34 @@ module "eks" {
 - **Chaos Engineering:** Test resilience with Chaos Mesh.
 - **Multi-Region Deployment:** For high availability.
 
+### ALB
+
+#### 1. ALB SG
+
+![image](https://github.com/user-attachments/assets/7c9f293f-c703-423a-b1f2-d62299d853d3)
+
+#### 2. ALB - Target Groups
+
+![image](https://github.com/user-attachments/assets/a53b8647-c18a-4587-b61b-79b012d1edb7)
+
+#### 3. ALB - Rules and Resource Map
+
+
+![image](https://github.com/user-attachments/assets/df68077d-9831-48fe-801c-6344c6ee8719)
+
+### 4. Route53 Mapping
+
+![image](https://github.com/user-attachments/assets/f197cf68-23fe-4940-acc2-6cf80983a395)
+
+#### 5. URL working
+
+![image](https://github.com/user-attachments/assets/a0dedff3-a968-4d41-976d-796ee7d4b771)
+
+
+
+
+
+
 ---
 
 ## GitHub Repository
