@@ -166,6 +166,23 @@ else
   echo "Trivy installation failed. Status: $trivy_status"
   exit 1
 fi
+
+# Install Helm
+echo "Installing Helm..."
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+rm get_helm.sh
+
+# Configure Helm for jenkins user
+sudo mkdir -p /var/lib/jenkins/.config/helm
+sudo cp -r /root/.config/helm /var/lib/jenkins/.config/
+sudo chown -R jenkins:jenkins /var/lib/jenkins/.config/helm
+
+# Configure Helm for ubuntu user
+sudo mkdir -p /home/ubuntu/.config/helm
+sudo cp -r /root/.config/helm /home/ubuntu/.config/
+sudo chown -R ubuntu:ubuntu /home/ubuntu/.config/helm
 # ---------------------------------------------------------------------------------
 
 # Update kubeconfig
@@ -236,6 +253,9 @@ trivy --version || echo "❌ Trivy not found"
 
 echo "🔍 Argocd Version"
 argocd version --client || echo "❌ argocd not found"
+
+echo "⛵ Helm Version:"
+helm version --short || echo "❌ Helm not found"
 
 
 # Get Jenkins initial admin password
