@@ -247,6 +247,17 @@ else
   echo "Jenkins is not running. Status: $jenkins_status"
   exit 1
 fi
+
+# Download and extract eksctl
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+
+# Move to /usr/local/bin
+sudo mv /tmp/eksctl /usr/local/bin
+
+# Verify installation
+eksctl version
+
+
 # ---------------------------------------------------------------------------------
 
 # Verify installations
@@ -279,6 +290,9 @@ argocd version --client || echo "❌ argocd not found"
 
 echo "⛵ Helm Version:"
 helm version --short || echo "❌ Helm not found"
+
+echo "🛠️ eksctl Version:"
+eksctl version || echo "❌ eksctl not found"
 
 
 # Get Jenkins initial admin password
