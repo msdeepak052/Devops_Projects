@@ -191,6 +191,30 @@ module "eks" {
 
 ![image](https://github.com/user-attachments/assets/a0dedff3-a968-4d41-976d-796ee7d4b771)
 
+### Ingress Rules and AWS ALB Controller Installed
+![image](https://github.com/user-attachments/assets/652c1ee8-5ba8-4689-b374-b7b297e15e86)
+
+![image](https://github.com/user-attachments/assets/94c09098-0486-48fa-8d9a-dda2b6e59f35)
+
+![image](https://github.com/user-attachments/assets/b975178d-aab0-468c-8d96-ff802a18c860)
+
+
+### Route53 mapping with the Ingress 
+
+![image](https://github.com/user-attachments/assets/00a23163-1ad9-4164-80c2-8c1260ebc1bd)
+
+
+
+
+#### Working of all channels with proper DNS
+
+![image](https://github.com/user-attachments/assets/009da0b0-0cdd-48a3-ac5b-4ee55806f021)
+
+
+### Cert Manager Integration
+
+
+
 
 
 
