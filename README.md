@@ -213,6 +213,50 @@ module "eks" {
 
 ### Cert Manager Integration
 
+![image](https://github.com/user-attachments/assets/b6ab50b4-697b-432c-b04c-9b1d6fdc1dda)
+
+
+#### Validation
+
+![image](https://github.com/user-attachments/assets/1576751f-e993-44f9-b80b-4128669d8ff0)
+
+#### Once the wildcard certificate is issued, update your Ingress resources with the new certificate ARN:
+
+```yaml
+alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:339712902352:certificate/new-wildcard-cert-id
+```
+
+#### Update your Ingress accordingly
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: app-ns
+  annotations:
+    alb.ingress.kubernetes.io/group.name: shared-ingress
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:339712902352:certificate/07756fed-11f9-46f1-8abc-7642d6554270
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/healthcheck-path: /
+spec:
+  ingressClassName: alb
+  rules:
+    - host: app.devopswithdeepak.co.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tours-travels-service
+                port: 
+                  number: 80
+```
 
 
 
